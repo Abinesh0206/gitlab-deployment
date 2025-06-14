@@ -1,32 +1,45 @@
-# Simplified GitLab CE Configuration
+# GitLab CE with Cloudflare SSL
 global:
-  # Domain configuration
   hosts:
     domain: awsraja.win
     gitlab:
       name: git.awsraja.win
   
-  # Edition
   edition: ce
   
-  # Ingress configuration for ALB
+  # Disable ingress - use LoadBalancer instead
   ingress:
-    enabled: true
-    class: alb
-    annotations:
-      alb.ingress.kubernetes.io/scheme: internet-facing
-      alb.ingress.kubernetes.io/target-type: ip
-      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-      alb.ingress.kubernetes.io/ssl-redirect: '443'
-      # Add your certificate ARN here after creating it
-      # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:221734559126:certificate/YOUR-CERT-ID
-    tls:
-      enabled: false  # Disable for now, enable after cert setup
+    enabled: false
   
   # Time zone
   time_zone: UTC
 
-# Disable components not needed for simple setup
+# Use LoadBalancer (works with Cloudflare)
+nginx-ingress:
+  enabled: true
+  controller:
+    service:
+      type: LoadBalancer
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+        service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+      ports:
+        http: 80
+        https: 443
+    config:
+      use-forwarded-headers: "true"
+      compute-full-forwarded-for: "true"
+      use-proxy-protocol: "false"
+
+# DISABLE cert-manager completely
+certmanager:
+  install: false
+
+# Fix for the cert-manager-issuer email error
+certmanager-issuer:
+  email: your-email@example.com  # Required even when disabled
+
+# Disable other complex components
 prometheus:
   install: false
 
@@ -36,19 +49,13 @@ grafana:
 gitlab-runner:
   install: false
 
-certmanager:
-  install: false
-
-certmanager-issuer:
-  email: your-email@example.com  # Replace with your actual email
-
-# Simplified PostgreSQL configuration
+# Simplified PostgreSQL
 postgresql:
   install: true
   auth:
     username: gitlab
     database: gitlab
-    password: "gitlabpassword123"  # Simple password
+    password: "gitlabpass123"
   primary:
     persistence:
       enabled: true
@@ -61,12 +68,12 @@ postgresql:
         memory: 1Gi
         cpu: 500m
 
-# Simplified Redis configuration
+# Simplified Redis
 redis:
   install: true
   auth:
     enabled: true
-    password: "redispassword123"  # Simple password
+    password: "redispass123"
   master:
     persistence:
       enabled: true
@@ -79,10 +86,10 @@ redis:
         memory: 512Mi
         cpu: 200m
 
-# Simplified GitLab configuration
+# GitLab components
 gitlab:
   webservice:
-    replicaCount: 1  # Single replica for simplicity
+    replicaCount: 1
     resources:
       requests:
         memory: 1.5Gi
@@ -113,18 +120,17 @@ gitlab:
         memory: 1Gi
         cpu: 500m
 
-# Simplified Registry configuration
+  toolbox:
+    replicas: 1
+
+# Simplified registry
 registry:
   enabled: true
   storage:
     size: 20Gi
 
-# Simplified MinIO configuration
+# Simplified MinIO
 minio:
   persistence:
     enabled: true
     size: 20Gi
-
-# Nginx configuration - disabled since using ALB
-nginx-ingress:
-  enabled: false

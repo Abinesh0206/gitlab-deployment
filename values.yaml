@@ -1,15 +1,13 @@
-# gitlab-values.yaml
+# Simplified GitLab CE Configuration
 global:
   # Domain configuration
   hosts:
     domain: awsraja.win
-    hostSuffix: 
     gitlab:
       name: git.awsraja.win
-    registry:
-      name: registry.git.awsraja.win
-    minio:
-      name: minio.git.awsraja.win
+  
+  # Edition
+  edition: ce
   
   # Ingress configuration for ALB
   ingress:
@@ -20,45 +18,15 @@ global:
       alb.ingress.kubernetes.io/target-type: ip
       alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
       alb.ingress.kubernetes.io/ssl-redirect: '443'
-      alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:REGION:ACCOUNT:certificate/CERTIFICATE-ID
-      alb.ingress.kubernetes.io/load-balancer-name: gitlab-alb
+      # Add your certificate ARN here after creating it
+      # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:221734559126:certificate/YOUR-CERT-ID
     tls:
-      enabled: true
-      secretName: gitlab-tls
-  
-  # Edition
-  edition: ce
+      enabled: false  # Disable for now, enable after cert setup
   
   # Time zone
   time_zone: UTC
-  
-  # External URLs
-  external_url: https://git.awsraja.win
-  
-  # Storage configuration
-  psql:
-    connectTimeout: 
-    password: {}
-    host: 
-    port: 
-    username: 
-    database: 
-  
-  redis:
-    password: {}
-    host: 
-    port: 
-  
-  # Resource configurations
-  common:
-    labels: {}
-  
-  # Security context
-  securityContext:
-    runAsUser: 1000
-    fsGroup: 1000
 
-# Disable components not needed for basic setup
+# Disable components not needed for simple setup
 prometheus:
   install: false
 
@@ -68,38 +36,23 @@ grafana:
 gitlab-runner:
   install: false
 
-# PostgreSQL configuration
+certmanager:
+  install: false
+
+certmanager-issuer:
+  email: your-email@example.com  # Replace with your actual email
+
+# Simplified PostgreSQL configuration
 postgresql:
   install: true
   auth:
     username: gitlab
     database: gitlab
-    existingSecret: gitlab-postgresql-password
+    password: "gitlabpassword123"  # Simple password
   primary:
     persistence:
       enabled: true
-      storageClass: gitlab-storage
-      size: 50Gi
-    resources:
-      requests:
-        memory: 1Gi
-        cpu: 500m
-      limits:
-        memory: 2Gi
-        cpu: 1000m
-
-# Redis configuration
-redis:
-  install: true
-  auth:
-    enabled: true
-    existingSecret: gitlab-redis-secret
-    existingSecretPasswordKey: password
-  master:
-    persistence:
-      enabled: true
-      storageClass: gitlab-storage
-      size: 8Gi
+      size: 20Gi
     resources:
       requests:
         memory: 512Mi
@@ -108,66 +61,70 @@ redis:
         memory: 1Gi
         cpu: 500m
 
-# GitLab configuration
-gitlab:
-  # Webservice configuration
-  webservice:
-    replicaCount: 2
+# Simplified Redis configuration
+redis:
+  install: true
+  auth:
+    enabled: true
+    password: "redispassword123"  # Simple password
+  master:
+    persistence:
+      enabled: true
+      size: 8Gi
     resources:
       requests:
-        memory: 2Gi
-        cpu: 1000m
+        memory: 256Mi
+        cpu: 100m
       limits:
-        memory: 4Gi
-        cpu: 2000m
-    
-  # Sidekiq configuration
+        memory: 512Mi
+        cpu: 200m
+
+# Simplified GitLab configuration
+gitlab:
+  webservice:
+    replicaCount: 1  # Single replica for simplicity
+    resources:
+      requests:
+        memory: 1.5Gi
+        cpu: 500m
+      limits:
+        memory: 3Gi
+        cpu: 1000m
+  
   sidekiq:
     replicaCount: 1
     resources:
       requests:
+        memory: 512Mi
+        cpu: 250m
+      limits:
         memory: 1Gi
         cpu: 500m
-      limits:
-        memory: 2Gi
-        cpu: 1000m
   
-  # Gitaly configuration
   gitaly:
     persistence:
       enabled: true
-      storageClass: gitlab-storage
-      size: 100Gi
+      size: 50Gi
     resources:
       requests:
+        memory: 512Mi
+        cpu: 250m
+      limits:
         memory: 1Gi
         cpu: 500m
-      limits:
-        memory: 2Gi
-        cpu: 1000m
 
-# Registry configuration
+# Simplified Registry configuration
 registry:
   enabled: true
   storage:
-    storageClass: gitlab-storage
-    size: 30Gi
+    size: 20Gi
 
-# MinIO configuration
+# Simplified MinIO configuration
 minio:
   persistence:
     enabled: true
-    storageClass: gitlab-storage
-    size: 50Gi
+    size: 20Gi
 
-# Nginx configuration
+# Nginx configuration - disabled since using ALB
 nginx-ingress:
-  enabled: false  # We're using ALB
-
-# Certmanager (disabled as we're using ACM)
-certmanager:
-  install: false
-
-# Issuer for Let's Encrypt (if not using ACM)
-certmanager-issuer:
-  email: your-email@example.com  # Replace with your email
+  enabled: false
